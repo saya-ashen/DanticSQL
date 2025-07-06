@@ -1,9 +1,10 @@
-from typing import Any, ClassVar, Literal
+from typing import Any
+
 import pandas as pd
 from pydantic import TypeAdapter
 from sqlalchemy import inspect
-from . import SQLModel
 
+from sqlmodel import SQLModel
 
 class DanticSQL:
     def __init__(self, models: list[type[SQLModel]], queried_columns: list[str]):
@@ -27,6 +28,7 @@ class DanticSQL:
         self._instances: dict[type[SQLModel], list[SQLModel]] = {}
 
         # 存储pydantic过程的中间结果，方便后续进行连接
+        # 存储格式：key:table类型，value: dict 该dict的内容: key:table类型（和主key关联的另一个类型）,value:该table的主键名称 ,'data': 连接使用的数据，其中包含所有关联的主键的值
         self.relationship_records_map: dict[type[SQLModel], dict] = {}
 
     @property
@@ -49,11 +51,6 @@ class DanticSQL:
         self._instances = instances
 
     def pydantic_all_single_table(self, records: pd.DataFrame, table: type[SQLModel]):
-        """
-        使用多进程并行处理数据
-        """
-
-        # 获取table 中的所有主键
         table_primary_key_name_map: dict[type[SQLModel], list[str]] = {}
         for _table in self.models:
             inspector = inspect(_table.__table__)  # type: ignore
@@ -91,7 +88,7 @@ class DanticSQL:
         primary_key_names = table_primary_key_name_map[table]
         agg_dict = {col: "first" for col in records.columns if col not in intersection_list + primary_key_names}
         agg_dict.update(dict.fromkeys(intersection_list, lambda x: set(x.dropna())))
-        if len(primary_key_names) > 1:
+        if len(agg_dict.keys()) > 1:
             unique_records = records.groupby(primary_key_names).agg(agg_dict).reset_index()
         else:
             unique_records = records.drop_duplicates(subset=primary_key_names)
@@ -112,15 +109,10 @@ class DanticSQL:
         """
         # FIXME: 这部分连接时有重复问题，需要检查哪里的问题
 
-        # 1. Create lookup maps for ALL instances of ALL models first.
-        # This is the most significant optimization.
-        # e.g., all_instance_maps = {
-        #     User: {'user_pk_1': user_obj_1, 'user_pk_2': user_obj_2},
-        #     Post: {'post_pk_1': post_obj_1, 'post_pk_2': post_obj_2}
-        # }
         all_instance_maps: dict[type[SQLModel], dict[Any, SQLModel]] = {}
         table_primary_key_name_map: dict[type[SQLModel], str] = {}
 
+        # 构建 table_primary_key_name_map ，这部分可以优化成一次
         for table, instances in self._instances.items():
             if not instances:
                 continue
@@ -128,16 +120,13 @@ class DanticSQL:
             inspector = inspect(table.__table__)  # type: ignore
             pk_cols = [col.name for col in inspector.primary_key.columns]
 
-            # This logic currently only supports single-column PKs for relationships
             if len(pk_cols) != 1:
-                # You might want to log this or handle it more gracefully
                 continue
 
             pk_name = pk_cols[0]
             table_primary_key_name_map[table] = pk_name
             all_instance_maps[table] = {getattr(inst, pk_name): inst for inst in instances}
 
-        # 2. Iterate through the relationship data to link objects.
         for source_table, rel_map in self.relationship_records_map.items():
             source_pk_name = table_primary_key_name_map.get(source_table)
             source_instance_map = all_instance_maps.get(source_table)
@@ -188,14 +177,9 @@ class DanticSQL:
 
                     # Find all related objects in one go using the map.
                     # This is much faster than looping and getting one by one.
-                    try:
-                        objects_to_link = [
+                    objects_to_link = [
                             related_instance_map.get(pk) for pk in related_pk_values if pk in related_instance_map
                         ]
-                    except Exception:
-                        import pdb
-
-                        pdb.set_trace()
 
                     # Set the attribute on the source instance
                     if direction in ("ONETOMANY", "MANYTOMANY"):
