@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = [
   { name="Saya Ashen", email="c3313433633@gmail.com" },
 ]
-description = ""
+description = "A powerful Python utility designed to efficiently reconstruct nested SQLModel object graphs from a flat Pandas DataFrame"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
