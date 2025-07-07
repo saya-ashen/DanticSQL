@@ -12,6 +12,7 @@ dependencies = [
     "pydantic>=2.11.7",
     "sqlmodel>=0.0.24",
 ]
+license = { file="LICENSE" }
 
 [build-system]
 requires = ["hatchling"]
