@@ -1,0 +1,37 @@
+# GitHub Action: 在创建 Release 时构建并发布 Python 包
+
+name: Publish Python Package to Release
+
+# 触发条件：当一个新的 Release 被“创建”时运行此工作流
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-and-publish:
+    name: Build and Publish Python Package
+    runs-on: ubuntu-latest # 使用最新的 Ubuntu 运行环境
+
+    permissions:
+      contents: write # 授予向 Release 上传资产的权限
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Run tests
+        run: uv run pytest tests
+
+      - name: Build package with uv
+        run: uv build 
+
+      - name: Publish to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload ${{ github.event.release.tag_name }} dist/*
