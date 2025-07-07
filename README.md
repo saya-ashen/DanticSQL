@@ -64,12 +64,7 @@ This approach avoids slow, nested loops and is significantly more performant, es
 This package is not published on PyPI yet. You can install it directly from the GitHub repository:
 
 ```bash
-pip install git+https://github.com/saya-ashen/DanticSQL.git
-```
-or
-```bash
 pip install https://github.com/saya-ashen/DanticSQL/releases/download/v0.1.0/danticsql-0.1.0-py3-none-any.whl
-
 ```
 
 ## Usage Example
