@@ -67,6 +67,7 @@ typeCheckingMode = "standard"
 [dependency-groups]
 dev = [
     "ipython>=9.1.0",
+    "pytest>=8.4.1",
 ]
 
 [tool.uv]
