@@ -42,7 +42,7 @@ class DanticSQL:
         for _table in self.models:
             if _table.__tablename__ == table.name:
                 return _table
-        raise ValueError(f"Table {table.name} not found in all_tables")
+        return None
 
     def pydantic_all(self, records: pd.DataFrame):
         instances = {}
@@ -64,6 +64,8 @@ class DanticSQL:
             assert relationship.local_remote_pairs is not None, "Relationship must have local_remote_pairs defined."
             relationship_direction = relationship.direction.name
             related_table = self.get_model_by_table(relationship.target)
+            if not related_table:
+                continue
             if relationship_direction == "MANYTOONE":
                 related_table_primary_key = related_table.__table__.primary_key.columns[0].name  # type: ignore
                 all_related_table_keys.append(related_table_primary_key)
@@ -87,7 +89,15 @@ class DanticSQL:
 
         primary_key_names = table_primary_key_name_map[table]
         agg_dict = {col: "first" for col in records.columns if col not in intersection_list + primary_key_names}
-        agg_dict.update(dict.fromkeys(intersection_list, lambda x: set(x.dropna())))
+
+        # 如果x.dropna()后的值只有一个，可能是需要添加到最终的Model中的结果，因此需要打开
+        def _lam(x):
+            _r = set(x.dropna())
+            if len(_r) == 1:
+                return _r.pop()
+            else:
+                return _r
+        agg_dict.update(dict.fromkeys(intersection_list, _lam))
         if len(agg_dict.keys()) > 1:
             unique_records = records.groupby(primary_key_names).agg(agg_dict).reset_index()
         else:
@@ -183,7 +193,12 @@ class DanticSQL:
 
                     # Set the attribute on the source instance
                     if direction in ("ONETOMANY", "MANYTOMANY"):
-                        setattr(source_instance, attribute_name, objects_to_link)
+                        # 判断是否为ONETOONE
+                        use_list = relationship_to_set.uselist
+                        if use_list:
+                            setattr(source_instance, attribute_name, objects_to_link)
+                        else:
+                            setattr(source_instance, attribute_name, objects_to_link[0] if objects_to_link else None)
                     elif direction == "MANYTOONE":
                         setattr(source_instance, attribute_name, objects_to_link[0] if objects_to_link else None)
 

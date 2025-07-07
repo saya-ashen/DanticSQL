@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select, text
 
 from danticsql import DanticSQL
+from tests.utils import compare_pydantic_dicts
 
 
 class HeroTeamLink(SQLModel, table=True):
@@ -27,10 +28,9 @@ class Hero(SQLModel, table=True):
 
     teams: list[Team] = Relationship(back_populates="heroes", link_model=HeroTeamLink)
 
-sqlite_file_name = "database.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
+sqlite_url = f"sqlite:///:memory:"
 
-engine = create_engine(sqlite_url, echo=True)
+engine = create_engine(sqlite_url, echo=True, connect_args={"check_same_thread": False})
 
 
 def create_db_and_tables():
@@ -120,32 +120,7 @@ def main():
     # 对比两种方法获取的结果是否相同
     r1 = dan.instances
     r2 = select_all_teams_and_heroes()
-    teams1 = cast(list[Team],r1["team"])
-    teams2 = cast(list[Team],r2["team"])
-    for team1, team2 in zip(teams1, teams2):
-        assert team1.team_id == team2.team_id
-        assert team1.team_name == team2.team_name
-        assert team1.headquarters == team2.headquarters
-        for hero1, hero2 in zip(team1.heroes, team2.heroes):
-            assert hero1.hero_id == hero2.hero_id
-            assert hero1.hero_name == hero2.hero_name
-            assert hero1.secret_name == hero2.secret_name
-            assert hero1.age == hero2.age, f"Expected {hero1.age} but got {hero2.age}"
-
-    heroes1 = cast(list[Hero], r1["hero"])
-    heroes2 = cast(list[Hero], r2["hero"])
-    # 按照id排序
-    heroes1.sort(key=lambda x: x.hero_id)
-    heroes2.sort(key=lambda x: x.hero_id)
-    for hero1, hero2 in zip(heroes1, heroes2):
-        assert hero1.hero_id == hero2.hero_id
-        assert hero1.hero_name == hero2.hero_name
-        assert hero1.secret_name == hero2.secret_name
-        assert hero1.age == hero2.age, f"Expected {hero1.age} but got {hero2.age}"
-        for team1, team2 in zip(hero1.teams, hero2.teams):
-            assert team1.team_id == team2.team_id
-            assert team1.team_name == team2.team_name
-            assert team1.headquarters == team2.headquarters
+    assert compare_pydantic_dicts(r1,r2)
 
 if __name__ == "__main__":
     main()
