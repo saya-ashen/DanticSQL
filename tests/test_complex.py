@@ -9,16 +9,17 @@ from sqlmodel.pool import StaticPool
 
 # ----------------- SQLModel Definitions -----------------
 
+
 # --- Link Tables ---
 class HeroTeamLink(SQLModel, table=True):
     """Link table for the many-to-many relationship between Hero and Team."""
-     
 
     team_id: int | None = Field(default=None, foreign_key="team.team_id", primary_key=True)
     hero_id: int | None = Field(default=None, foreign_key="hero.hero_id", primary_key=True)
 
 
 # --- Main Tables ---
+
 
 class City(SQLModel, table=True):
     """Represents a city where a home base can be located."""
@@ -32,7 +33,6 @@ class City(SQLModel, table=True):
 
 class HomeBase(SQLModel, table=True):
     """A one-to-one relationship with a Team."""
-     
 
     base_id: int | None = Field(default=None, primary_key=True)
     base_name: str
@@ -48,13 +48,12 @@ class HomeBase(SQLModel, table=True):
 
 class Team(SQLModel, table=True):
     """A team can have many heroes."""
-     
 
     team_id: int | None = Field(default=None, primary_key=True)
     team_name: str = Field(index=True)
 
     # One-to-one relationship with HomeBase
-    home_base: HomeBase | None = Relationship(back_populates="team", sa_relationship_kwargs={'uselist': False})
+    home_base: HomeBase | None = Relationship(back_populates="team", sa_relationship_kwargs={"uselist": False})
 
     # Many-to-many relationship with Hero
     heroes: list["Hero"] = Relationship(back_populates="teams", link_model=HeroTeamLink)
@@ -62,7 +61,6 @@ class Team(SQLModel, table=True):
 
 class Power(SQLModel, table=True):
     """A hero can have multiple powers (one-to-many)."""
-     
 
     power_id: int | None = Field(default=None, primary_key=True)
     power_name: str
@@ -74,7 +72,6 @@ class Power(SQLModel, table=True):
 
 class Gadget(SQLModel, table=True):
     """A hero can have multiple gadgets (one-to-many)."""
-     
 
     gadget_id: int | None = Field(default=None, primary_key=True)
     gadget_name: str
@@ -86,7 +83,6 @@ class Gadget(SQLModel, table=True):
 
 class Hero(SQLModel, table=True):
     """A hero can be on many teams and have many powers/gadgets."""
-     
 
     hero_id: int | None = Field(default=None, primary_key=True)
     hero_name: str = Field(index=True)
@@ -102,13 +98,17 @@ class Hero(SQLModel, table=True):
 
 
 # ----------------- Pytest Fixture for DB Setup -----------------
-@pytest.fixture(scope="function",name="session")
+@pytest.fixture(scope="function", name="session")
 def db_engine_fixture():
     """
     Pytest fixture to create an in-memory SQLite database, create tables,
     and populate it with data for the test. Yields the engine session.
     """
-    engine = create_engine("sqlite://", connect_args={"check_same_thread": False},poolclass=StaticPool,)
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         populate_database(session)
@@ -117,7 +117,7 @@ def db_engine_fixture():
 
 
 # ----------------- Helper Functions  -----------------
-def populate_database(session:Session):
+def populate_database(session: Session):
     """Create and add complex, interrelated data to the database."""
     # 1. Create Cities
     city_ny = City(city_name="New York", state="NY")
@@ -140,13 +140,13 @@ def populate_database(session:Session):
         age=48,
         powers=[
             Power(power_name="Genius Intellect", description="Can build anything."),
-            Power(power_name="Powered Armor", description="Grants flight and strength.")
+            Power(power_name="Powered Armor", description="Grants flight and strength."),
         ],
         gadgets=[
             Gadget(gadget_name="Repulsor Rays", functionality="Energy blasts."),
-            Gadget(gadget_name="Arc Reactor", functionality="Energy source.")
+            Gadget(gadget_name="Arc Reactor", functionality="Energy source."),
         ],
-        teams=[team_preventers, team_revengers] # On two teams
+        teams=[team_preventers, team_revengers],  # On two teams
     )
 
     hero_spider_boy = Hero(
@@ -155,12 +155,10 @@ def populate_database(session:Session):
         age=19,
         powers=[
             Power(power_name="Wall-Crawling", description="Sticks to surfaces."),
-            Power(power_name="Spider-Sense", description="Precognitive danger sense.")
+            Power(power_name="Spider-Sense", description="Precognitive danger sense."),
         ],
-        gadgets=[
-            Gadget(gadget_name="Web-Shooters", functionality="Shoots synthetic webbing.")
-        ],
-        teams=[team_preventers] # On one team
+        gadgets=[Gadget(gadget_name="Web-Shooters", functionality="Shoots synthetic webbing.")],
+        teams=[team_preventers],  # On one team
     )
 
     hero_deadpond = Hero(
@@ -172,9 +170,9 @@ def populate_database(session:Session):
         ],
         gadgets=[
             Gadget(gadget_name="Katanas", functionality="Very sharp."),
-            Gadget(gadget_name="Teleportation Belt", functionality="Unreliable short-range teleport.")
+            Gadget(gadget_name="Teleportation Belt", functionality="Unreliable short-range teleport."),
         ],
-        teams=[team_z_force, team_revengers] # On two different teams
+        teams=[team_z_force, team_revengers],  # On two different teams
     )
 
     hero_captain_canada = Hero(
@@ -183,7 +181,7 @@ def populate_database(session:Session):
         age=93,
         powers=[Power(power_name="Super-Soldier Serum", description="Peak human abilities.")],
         gadgets=[Gadget(gadget_name="Vibranium-Alloy Shield", functionality="Indestructible shield.")],
-        teams=[team_preventers] # Just on one team
+        teams=[team_preventers],  # Just on one team
     )
 
     # Add all objects to the session
@@ -198,14 +196,17 @@ def populate_database(session:Session):
     for hero in [hero_rusty_man, hero_spider_boy, hero_deadpond, hero_captain_canada]:
         session.refresh(hero)
     for team in [team_preventers, team_z_force, team_revengers]:
-         session.refresh(team)
+        session.refresh(team)
 
-def select_all_orm(session:Session):
+
+def select_all_orm(session: Session):
     """Select all teams and heroes with their relationships."""
     citys_query = select(City).options(selectinload(City.bases).selectinload(HomeBase.team))
     cities = session.exec(citys_query).all()
 
-    teams_query = select(Team).options(selectinload(Team.heroes), selectinload(Team.home_base).selectinload(HomeBase.city))
+    teams_query = select(Team).options(
+        selectinload(Team.heroes), selectinload(Team.home_base).selectinload(HomeBase.city)
+    )
     teams = session.exec(teams_query).all()
 
     heroes_query = select(Hero).options(selectinload(Hero.teams), selectinload(Hero.powers), selectinload(Hero.gadgets))
@@ -213,7 +214,8 @@ def select_all_orm(session:Session):
 
     return {"city": cities, "team": teams, "hero": heroes}
 
-def select_all_sql(session:Session) -> pd.DataFrame:
+
+def select_all_sql(session: Session) -> pd.DataFrame:
     """Select all teams and heroes with their relationships using raw SQL."""
     sql = """SELECT
     h.hero_id,
@@ -254,17 +256,37 @@ LEFT JOIN
     df = pd.DataFrame(dict_results, dtype=object)
     return df
 
-def get_danticsql_results(session:Session):
+
+def get_danticsql_results(session: Session):
     df = select_all_sql(session)
-    dan = DanticSQL([Team, Hero, City  ], ["age","base_id","base_name","city_id","city_name",
-                     "gadget_id","gadget_name","functionality","hero_id","hero_name",
-                     "power_id","power_name","power_description","secret_name","team_id",
-                     "team_name","state"])
+    dan = DanticSQL(
+        [Team, Hero, City],
+        [
+            "age",
+            "base_id",
+            "base_name",
+            "city_id",
+            "city_name",
+            "gadget_id",
+            "gadget_name",
+            "functionality",
+            "hero_id",
+            "hero_name",
+            "power_id",
+            "power_name",
+            "power_description",
+            "secret_name",
+            "team_id",
+            "team_name",
+            "state",
+        ],
+    )
     dan.pydantic_all(df)
     dan.connect_all()
     return dan.instances
 
-def test_complex_reconstruction(session:Session):
+
+def test_complex_reconstruction(session: Session):
     """
     Tests that DanticSQL can correctly reconstruct complex relationships
     from a flat DataFrame, matching the result from a direct ORM query.

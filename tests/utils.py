@@ -2,11 +2,11 @@ from sqlmodel import SQLModel
 
 
 # 判断两个pydantic对象是否完全相同
-def compare_pydantic_objects(obj1:SQLModel, obj2:SQLModel):
+def compare_pydantic_objects(obj1: SQLModel, obj2: SQLModel):
     """Compare two Pydantic objects for equality."""
     if obj1.__class__ != obj2.__class__:
         return False
-    return obj1.model_dump()  == obj2.model_dump()
+    return obj1.model_dump() == obj2.model_dump()
 
 
 # 判断两个dict[str,List[SQLModel]]对象是否完全相同

@@ -35,12 +35,8 @@ def create_heroes():
         team_preventers = Team(name="Preventers", headquarters="Sharp Tower")
         team_z_force = Team(name="Z-Force", headquarters="Sister Margaret's Bar")
 
-        hero_deadpond = Hero(
-            name="Deadpond", secret_name="Dive Wilson", team=team_z_force
-        )
-        hero_rusty_man = Hero(
-            name="Rusty-Man", secret_name="Tommy Sharp", age=48, team=team_preventers
-        )
+        hero_deadpond = Hero(name="Deadpond", secret_name="Dive Wilson", team=team_z_force)
+        hero_rusty_man = Hero(name="Rusty-Man", secret_name="Tommy Sharp", age=48, team=team_preventers)
         hero_spider_boy = Hero(name="Spider-Boy", secret_name="Pedro Parqueador")
         session.add(hero_deadpond)
         session.add(hero_rusty_man)
@@ -75,9 +71,7 @@ def create_heroes():
 
         hero_tarantula = Hero(name="Tarantula", secret_name="Natalia Roman-on", age=32)
         hero_dr_weird = Hero(name="Dr. Weird", secret_name="Steve Weird", age=36)
-        hero_cap = Hero(
-            name="Captain North America", secret_name="Esteban Rogelios", age=93
-        )
+        hero_cap = Hero(name="Captain North America", secret_name="Esteban Rogelios", age=93)
 
         team_preventers.heroes.append(hero_tarantula)
         team_preventers.heroes.append(hero_dr_weird)
@@ -104,6 +98,7 @@ def select_heroes():
         print("Spider-Boy's team:", team)
 
         print("Spider-Boy's team again:", hero_spider_boy.team)
+
 
 def select_heroes_sql():
     sql = """SELECT
